@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학습 홈페이지</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1 class="logo">학습 포털</h1>
+            <nav>
+                <ul>
+                    <li><a href="#" class="nav-link" data-section="home-section">홈</a></li>
+                    <li><a href="#" class="nav-link" data-section="lectures-section">강의 자료</a></li>
+                    <li><a href="#" class="nav-link" data-section="list-section">게시판</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container main-container">
+        <!-- 홈 섹션 -->
+        <div class="main-section" id="home-section">
+            <div class="welcome-box">
+                <h2>환영합니다!</h2>
+                <p>이 학습 포털에서는 다양한 강의 자료와 함께 소통할 수 있는 게시판을 제공합니다.</p>
+            </div>
+            
+            <div class="features">
+                <div class="feature-box">
+                    <h3>최신 강의</h3>
+                    <div class="feature-content" id="latest-lectures">
+                        <p>아직 강의가 없습니다.</p>
+                    </div>
+                </div>
+                
+                <div class="feature-box">
+                    <h3>최근 게시글</h3>
+                    <div class="feature-content" id="latest-posts">
+                        <p>아직 게시글이 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 강의 자료 섹션 -->
+        <div class="main-section hidden" id="lectures-section">
+            <div class="section-header">
+                <h2>강의 자료</h2>
+                <button id="add-lecture-btn" class="btn primary-btn">강의 추가</button>
+            </div>
+            
+            <div class="lectures-grid" id="lectures-grid">
+                <!-- 자바스크립트로 동적 생성 -->
+            </div>
+        </div>
+        
+        <!-- 강의 추가 폼 -->
+        <div class="main-section hidden" id="add-lecture-section">
+            <div class="section-header">
+                <h2>강의 추가</h2>
+            </div>
+            <form id="lecture-form">
+                <div class="form-group">
+                    <label for="lecture-title">강의 제목</label>
+                    <input type="text" id="lecture-title" name="lecture-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="lecture-desc">강의 설명</label>
+                    <textarea id="lecture-desc" name="lecture-desc" rows="5" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="lecture-url">강의 URL</label>
+                    <input type="url" id="lecture-url" name="lecture-url" required>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" id="lecture-cancel-btn" class="btn">취소</button>
+                    <button type="submit" class="btn primary-btn">저장</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 강의 상세 섹션 -->
+        <div class="main-section hidden" id="lecture-detail-section">
+            <div class="section-header">
+                <h2>강의 상세</h2>
+            </div>
+            <div class="lecture-view">
+                <div class="lecture-title" id="view-lecture-title"></div>
+                <div class="lecture-desc" id="view-lecture-desc"></div>
+                <div class="lecture-actions">
+                    <a href="#" id="view-lecture-url" target="_blank" class="btn primary-btn">강의 바로가기</a>
+                </div>
+            </div>
+            <div class="form-buttons">
+                <button type="button" id="back-to-lectures-btn" class="btn">목록으로</button>
+                <button type="button" id="delete-lecture-btn" class="btn">삭제</button>
+            </div>
+        </div>
+        
+        <!-- 게시글 목록 섹션 -->
+        <div class="main-section hidden" id="list-section">
+            <div class="section-header">
+                <h2>게시판</h2>
+                <button id="new-post-btn" class="btn primary-btn">새 글 작성</button>
+            </div>
+            <table id="posts-table">
+                <thead>
+                    <tr>
+                        <th>번호</th>
+                        <th>제목</th>
+                        <th>작성자</th>
+                        <th>작성일</th>
+                    </tr>
+                </thead>
+                <tbody id="posts-list">
+                    <!-- 자바스크립트로 동적 생성 -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 게시글 작성 섹션 -->
+        <div class="main-section hidden" id="write-section">
+            <div class="section-header">
+                <h2>게시글 작성</h2>
+            </div>
+            <form id="post-form">
+                <div class="form-group">
+                    <label for="title">제목</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="author">작성자</label>
+                    <input type="text" id="author" name="author" required>
+                </div>
+                <div class="form-group">
+                    <label for="content">내용</label>
+                    <textarea id="content" name="content" rows="10" required></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" id="cancel-btn" class="btn">취소</button>
+                    <button type="submit" class="btn primary-btn">저장</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 게시글 상세 보기 섹션 -->
+        <div class="main-section hidden" id="view-section">
+            <div class="section-header">
+                <h2>게시글 보기</h2>
+            </div>
+            <div class="post-view">
+                <div class="post-title" id="view-title"></div>
+                <div class="post-info">
+                    <span id="view-author"></span> | <span id="view-date"></span>
+                </div>
+                <div class="post-content" id="view-content"></div>
+            </div>
+            <div class="form-buttons">
+                <button type="button" id="back-btn" class="btn">목록으로</button>
+                <button type="button" id="edit-btn" class="btn">수정</button>
+                <button type="button" id="delete-btn" class="btn">삭제</button>
+            </div>
+        </div>
+
+        <!-- 게시글 수정 섹션 -->
+        <div class="main-section hidden" id="edit-section">
+            <div class="section-header">
+                <h2>게시글 수정</h2>
+            </div>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label for="edit-title">제목</label>
+                    <input type="text" id="edit-title" name="edit-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-author">작성자</label>
+                    <input type="text" id="edit-author" name="edit-author" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-content">내용</label>
+                    <textarea id="edit-content" name="edit-content" rows="10" required></textarea>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" id="edit-cancel-btn" class="btn">취소</button>
+                    <button type="submit" class="btn primary-btn">수정 완료</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 학습 포털. 모든 권리 보유.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 
