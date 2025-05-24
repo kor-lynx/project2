@@ -1,8 +1,12 @@
-// 데이터 저장소 (localStorage 사용)
-let posts = JSON.parse(localStorage.getItem('posts')) || [];
-let lectures = JSON.parse(localStorage.getItem('lectures')) || [];
-let currentPostId = parseInt(localStorage.getItem('currentPostId')) || 1;
-let currentLectureId = parseInt(localStorage.getItem('currentLectureId')) || 1;
+// 구글 스프레드시트 웹앱 URL (이 URL은 실제 배포 후 변경해야 합니다)
+const SHEET_API_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+
+// 데이터 스토어
+let posts = [];
+let lectures = [];
+let currentPostId = 1;
+let currentLectureId = 1;
+let isLoading = false;
 
 // DOM 요소 선택 - 메인 섹션
 const homeSection = document.getElementById('home-section');
@@ -40,8 +44,19 @@ const latestPosts = document.getElementById('latest-posts');
 // 네비게이션 요소 선택
 const navLinks = document.querySelectorAll('.nav-link');
 
+// 로딩 인디케이터 생성
+const loadingIndicator = document.createElement('div');
+loadingIndicator.className = 'loading-indicator';
+loadingIndicator.innerHTML = '<div class="spinner"></div><p>로딩 중...</p>';
+document.body.appendChild(loadingIndicator);
+
 // 페이지 로드 시 초기화
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+    // 데이터 로드
+    showLoading();
+    await Promise.all([fetchPosts(), fetchLectures()]);
+    hideLoading();
+    
     // 홈 화면 초기화
     updateHomeSection();
     
@@ -52,16 +67,22 @@ window.addEventListener('load', () => {
 // 네비게이션 설정
 function setupNavigation() {
     navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
+        link.addEventListener('click', async (e) => {
             e.preventDefault();
             const targetSection = document.getElementById(link.dataset.section);
             showMainSection(targetSection);
             
             // 특정 섹션에 관련된 추가 작업
             if (link.dataset.section === 'list-section') {
+                showLoading();
+                await fetchPosts();
                 displayPosts();
+                hideLoading();
             } else if (link.dataset.section === 'lectures-section') {
+                showLoading();
+                await fetchLectures();
                 displayLectures();
+                hideLoading();
             }
         });
     });
@@ -137,6 +158,190 @@ function updateLatestPosts() {
     });
 }
 
+// 구글 스프레드시트에서 게시글 데이터 가져오기
+async function fetchPosts() {
+    try {
+        const response = await fetch(`${SHEET_API_URL}?action=getPosts`);
+        const data = await response.json();
+        
+        if (data.success) {
+            posts = data.posts || [];
+            
+            // 현재 최대 게시글 ID 찾기
+            if (posts.length > 0) {
+                const maxId = Math.max(...posts.map(post => post.id));
+                currentPostId = maxId + 1;
+            }
+        } else {
+            console.error('게시글 로드 실패:', data.error);
+            showMessage('게시글을 불러오는데 실패했습니다', 'error');
+        }
+    } catch (error) {
+        console.error('게시글 로드 중 오류 발생:', error);
+        showMessage('서버 연결에 실패했습니다', 'error');
+    }
+}
+
+// 구글 스프레드시트에서 강의 데이터 가져오기
+async function fetchLectures() {
+    try {
+        const response = await fetch(`${SHEET_API_URL}?action=getLectures`);
+        const data = await response.json();
+        
+        if (data.success) {
+            lectures = data.lectures || [];
+            
+            // 현재 최대 강의 ID 찾기
+            if (lectures.length > 0) {
+                const maxId = Math.max(...lectures.map(lecture => lecture.id));
+                currentLectureId = maxId + 1;
+            }
+        } else {
+            console.error('강의 로드 실패:', data.error);
+            showMessage('강의를 불러오는데 실패했습니다', 'error');
+        }
+    } catch (error) {
+        console.error('강의 로드 중 오류 발생:', error);
+        showMessage('서버 연결에 실패했습니다', 'error');
+    }
+}
+
+// 게시글 저장
+async function savePost(post) {
+    try {
+        showLoading();
+        const response = await fetch(SHEET_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'savePost',
+                post: post
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 저장 성공 시 다시 데이터 가져오기
+            await fetchPosts();
+            showMessage('게시글이 저장되었습니다', 'success');
+        } else {
+            console.error('게시글 저장 실패:', data.error);
+            showMessage('게시글 저장에 실패했습니다', 'error');
+        }
+        hideLoading();
+        
+    } catch (error) {
+        console.error('게시글 저장 중 오류 발생:', error);
+        showMessage('서버 연결에 실패했습니다', 'error');
+        hideLoading();
+    }
+}
+
+// 게시글 삭제
+async function deletePost(postId) {
+    try {
+        showLoading();
+        const response = await fetch(SHEET_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'deletePost',
+                postId: postId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 삭제 성공 시 다시 데이터 가져오기
+            await fetchPosts();
+            showMessage('게시글이 삭제되었습니다', 'success');
+        } else {
+            console.error('게시글 삭제 실패:', data.error);
+            showMessage('게시글 삭제에 실패했습니다', 'error');
+        }
+        hideLoading();
+        
+    } catch (error) {
+        console.error('게시글 삭제 중 오류 발생:', error);
+        showMessage('서버 연결에 실패했습니다', 'error');
+        hideLoading();
+    }
+}
+
+// 강의 저장
+async function saveLecture(lecture) {
+    try {
+        showLoading();
+        const response = await fetch(SHEET_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'saveLecture',
+                lecture: lecture
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 저장 성공 시 다시 데이터 가져오기
+            await fetchLectures();
+            showMessage('강의가 저장되었습니다', 'success');
+        } else {
+            console.error('강의 저장 실패:', data.error);
+            showMessage('강의 저장에 실패했습니다', 'error');
+        }
+        hideLoading();
+        
+    } catch (error) {
+        console.error('강의 저장 중 오류 발생:', error);
+        showMessage('서버 연결에 실패했습니다', 'error');
+        hideLoading();
+    }
+}
+
+// 강의 삭제
+async function deleteLecture(lectureId) {
+    try {
+        showLoading();
+        const response = await fetch(SHEET_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'deleteLecture',
+                lectureId: lectureId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 삭제 성공 시 다시 데이터 가져오기
+            await fetchLectures();
+            showMessage('강의가 삭제되었습니다', 'success');
+        } else {
+            console.error('강의 삭제 실패:', data.error);
+            showMessage('강의 삭제에 실패했습니다', 'error');
+        }
+        hideLoading();
+        
+    } catch (error) {
+        console.error('강의 삭제 중 오류 발생:', error);
+        showMessage('서버 연결에 실패했습니다', 'error');
+        hideLoading();
+    }
+}
+
 // 강의 목록 표시 함수
 function displayLectures() {
     lecturesGrid.innerHTML = '';
@@ -197,7 +402,7 @@ lectureCancelBtn.addEventListener('click', () => {
 });
 
 // 강의 폼 제출 이벤트
-lectureForm.addEventListener('submit', (e) => {
+lectureForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const title = document.getElementById('lecture-title').value;
@@ -214,8 +419,7 @@ lectureForm.addEventListener('submit', (e) => {
     };
     
     // 강의 추가 및 저장
-    lectures.push(newLecture);
-    saveLecturesData();
+    await saveLecture(newLecture);
     
     // 강의 목록 갱신 및 화면 전환
     displayLectures();
@@ -229,13 +433,12 @@ backToLecturesBtn.addEventListener('click', () => {
 });
 
 // 강의 삭제 버튼 클릭 이벤트
-deleteLectureBtn.addEventListener('click', () => {
+deleteLectureBtn.addEventListener('click', async () => {
     const lectureId = parseInt(lectureDetailSection.dataset.lectureId);
     
     if (confirm('정말 이 강의를 삭제하시겠습니까?')) {
         // 강의 삭제
-        lectures = lectures.filter(l => l.id !== lectureId);
-        saveLecturesData();
+        await deleteLecture(lectureId);
         displayLectures();
         updateHomeSection();
         showMainSection(lecturesSection);
@@ -254,7 +457,7 @@ cancelBtn.addEventListener('click', () => {
 });
 
 // 폼 제출 이벤트 (게시글 작성)
-postForm.addEventListener('submit', (e) => {
+postForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const title = document.getElementById('title').value;
@@ -271,8 +474,7 @@ postForm.addEventListener('submit', (e) => {
     };
     
     // 게시글 추가 및 저장
-    posts.push(newPost);
-    savePostsData();
+    await savePost(newPost);
     
     // 게시글 목록 갱신 및 화면 전환
     displayPosts();
@@ -306,7 +508,7 @@ editCancelBtn.addEventListener('click', () => {
 });
 
 // 수정 폼 제출 이벤트
-editForm.addEventListener('submit', (e) => {
+editForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const id = parseInt(document.getElementById('edit-id').value);
@@ -314,32 +516,32 @@ editForm.addEventListener('submit', (e) => {
     const author = document.getElementById('edit-author').value;
     const content = document.getElementById('edit-content').value;
     
-    // 게시글 수정
-    const index = posts.findIndex(p => p.id === id);
-    if (index !== -1) {
-        posts[index] = {
-            ...posts[index],
-            title: title,
-            author: author,
-            content: content
-        };
-        
-        savePostsData();
-        displayPosts();
-        updateHomeSection();
-        displayPostDetails(id);
-        showMainSection(viewSection);
-    }
+    // 게시글 객체 생성
+    const updatedPost = {
+        id: id,
+        title: title,
+        author: author,
+        content: content,
+        date: (posts.find(p => p.id === id) || {}).date || new Date().toLocaleDateString('ko-KR')
+    };
+    
+    // 게시글 저장
+    await savePost(updatedPost);
+    
+    // 게시글 목록 갱신 및 화면 전환
+    displayPosts();
+    updateHomeSection();
+    displayPostDetails(id);
+    showMainSection(viewSection);
 });
 
 // 삭제 버튼 클릭 이벤트
-deleteBtn.addEventListener('click', () => {
+deleteBtn.addEventListener('click', async () => {
     const postId = parseInt(viewSection.dataset.postId);
     
     if (confirm('정말 이 게시글을 삭제하시겠습니까?')) {
         // 게시글 삭제
-        posts = posts.filter(p => p.id !== postId);
-        savePostsData();
+        await deletePost(postId);
         displayPosts();
         updateHomeSection();
         showMainSection(listSection);
@@ -426,14 +628,38 @@ function updateActiveNav(sectionId) {
     });
 }
 
-// 게시글 데이터 저장 함수
-function savePostsData() {
-    localStorage.setItem('posts', JSON.stringify(posts));
-    localStorage.setItem('currentPostId', currentPostId.toString());
+// 로딩 표시 함수
+function showLoading() {
+    isLoading = true;
+    loadingIndicator.classList.add('show');
 }
 
-// 강의 데이터 저장 함수
-function saveLecturesData() {
-    localStorage.setItem('lectures', JSON.stringify(lectures));
-    localStorage.setItem('currentLectureId', currentLectureId.toString());
+// 로딩 숨김 함수
+function hideLoading() {
+    isLoading = false;
+    loadingIndicator.classList.remove('show');
+}
+
+// 메시지 표시 함수
+function showMessage(message, type = 'info') {
+    const messageEl = document.createElement('div');
+    messageEl.className = `message-toast ${type}`;
+    messageEl.textContent = message;
+    
+    document.body.appendChild(messageEl);
+    
+    // 애니메이션 효과를 위해 약간의 지연 후 클래스 추가
+    setTimeout(() => {
+        messageEl.classList.add('show');
+    }, 10);
+    
+    // 3초 후 메시지 삭제
+    setTimeout(() => {
+        messageEl.classList.remove('show');
+        
+        // 애니메이션 완료 후 요소 제거
+        setTimeout(() => {
+            document.body.removeChild(messageEl);
+        }, 300);
+    }, 3000);
 } 
